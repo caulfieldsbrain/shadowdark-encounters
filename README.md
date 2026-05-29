@@ -100,4 +100,19 @@ When used together, monsters imported or created with Shadowdark Statblocks can 
 ### Manual Installation
 
 1. Download the latest release.
-2. Extract the files into:
+2. Extract the files into: .obsidian/plugins/shadowdark-encounters/
+3. Enable **Shadowdark Encounters** in Obsidian's Community Plugins settings.
+
+---
+
+## Support
+
+If you find this plugin useful and would like to support development:
+
+https://buymeacoffee.com/caulfieldsbrain
+
+---
+
+## License
+
+MIT
