@@ -1,5 +1,7 @@
 import {
   MarkdownPostProcessorContext,
+  Menu,
+  Notice,
   TFile
 } from "obsidian";
 
@@ -93,7 +95,7 @@ export class EncounterRenderer {
       : [];
 
     const totalMonsters = monsters.reduce(
-      (sum: number, monster: any) =>
+      (sum: number, monster: Record<string, any>) =>
         sum + Number(monster.qty ?? 1),
       0
     );
@@ -133,51 +135,134 @@ export class EncounterRenderer {
     frontmatter: Record<string, any>
   ): void {
     const monsters = Array.isArray(frontmatter.monsters)
-        ? frontmatter.monsters
-        : [];
+      ? frontmatter.monsters
+      : [];
 
     if (monsters.length === 0) {
-        return;
+      container.createEl("p", {
+        cls: "sd-encounter-rendered-empty",
+        text: "No monsters added."
+      });
+
+      return;
     }
 
     const rosterEl = container.createDiv({
-        cls: "sd-encounter-rendered-roster"
+      cls: "sd-encounter-rendered-roster"
     });
 
     for (const monster of monsters) {
-        const qty = monster.qty ?? 1;
-        const name = monster.name ?? "Unknown Monster";
-        const path = monster.path;
+      const qty = monster.qty ?? 1;
+      const name = monster.name ?? "Unknown Monster";
 
-        const meta = [
+      const meta = [
         monster.level ? `LV ${monster.level}` : null,
         monster.ac ? `AC ${monster.ac}` : null,
         monster.hp ? `HP ${monster.hp}` : null
-        ]
+      ]
         .filter(Boolean)
         .join(" • ");
 
-        const pillEl = rosterEl.createEl("button", {
+      const pillEl = rosterEl.createEl("button", {
         cls: "sd-encounter-rendered-monster",
         text: meta
-            ? `${qty}x ${name} • ${meta}`
-            : `${qty}x ${name}`
-        });
+          ? `${qty}x ${name} • ${meta}`
+          : `${qty}x ${name}`
+      });
 
-        pillEl.addEventListener("click", async () => {
-        if (typeof path !== "string" || path.length === 0) {
-            return;
-        }
-
-        const file =
-            this.plugin.app.vault.getAbstractFileByPath(path);
-
-        if (file instanceof TFile) {
-            await this.plugin.app.workspace
-            .getLeaf(false)
-            .openFile(file);
-        }
-        });
+      pillEl.addEventListener("click", (event) => {
+        this.showMonsterPillMenu(event, monster);
+      });
     }
+  }
+
+  showMonsterPillMenu(
+    event: MouseEvent,
+    monster: Record<string, any>
+  ): void {
+    const path = monster.path;
+    const name = monster.name ?? "Unknown Monster";
+
+    const menu = new Menu();
+
+    menu.addItem((item) => {
+      item
+        .setTitle(`Open ${name}`)
+        .onClick(async () => {
+          await this.openMonster(path, "current");
+        });
+    });
+
+    menu.addItem((item) => {
+      item
+        .setTitle("Open in New Tab")
+        .onClick(async () => {
+          await this.openMonster(path, "new-tab");
+        });
+    });
+
+    menu.addItem((item) => {
+      item
+        .setTitle("Open to the Right")
+        .onClick(async () => {
+          await this.openMonster(path, "right");
+        });
+    });
+
+    menu.addSeparator();
+
+    menu.addItem((item) => {
+      item.setTitle(
+        [
+          monster.level ? `LV ${monster.level}` : null,
+          monster.ac ? `AC ${monster.ac}` : null,
+          monster.hp ? `HP ${monster.hp}` : null
+        ]
+          .filter(Boolean)
+          .join(" • ") || "No stats available"
+      );
+
+      item.setDisabled(true);
+    });
+
+    menu.showAtMouseEvent(event);
+  }
+
+  async openMonster(
+    path: unknown,
+    mode: "current" | "new-tab" | "right"
+  ): Promise<void> {
+    if (typeof path !== "string" || path.length === 0) {
+      new Notice("Monster file not found.");
+      return;
+    }
+
+    const file =
+      this.plugin.app.vault.getAbstractFileByPath(path);
+
+    if (!(file instanceof TFile)) {
+      new Notice("Monster file not found.");
+      return;
+    }
+
+    if (mode === "right") {
+      await this.plugin.app.workspace
+        .getLeaf("split", "vertical")
+        .openFile(file);
+
+      return;
+    }
+
+    if (mode === "new-tab") {
+      await this.plugin.app.workspace
+        .getLeaf(true)
+        .openFile(file);
+
+      return;
+    }
+
+    await this.plugin.app.workspace
+      .getLeaf(false)
+      .openFile(file);
   }
 }
