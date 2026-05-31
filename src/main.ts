@@ -40,30 +40,32 @@ export default class ShadowdarkEncountersPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "create-test-encounter",
-      name: "Create Test Encounter",
+      id: "edit-shadowdark-encounter",
+      name: "Edit Current Shadowdark Encounter",
+      checkCallback: (checking) => {
+        const file = this.app.workspace.getActiveFile();
 
-      callback: async () => {
+        if (!file) {
+          return false;
+        }
 
-        const monsters =
-          this.monsterIndex.getAllMonsters();
+        const cache = this.app.metadataCache.getFileCache(file);
+        const frontmatter = cache?.frontmatter;
 
-        const firstMonster = monsters[0];
+        if (frontmatter?.shadowdarkType !== "encounter") {
+          return false;
+        }
 
-        await this.encounterService
-          .createEncounterNote({
-            name: "Test Encounter",
+        if (!checking) {
+          new CreateEncounterModal(
+            this.app,
+            this.monsterIndex,
+            this.encounterService,
+            file
+          ).open();
+        }
 
-            monsters: firstMonster
-              ? [{
-                  name: firstMonster.name,
-                  path: firstMonster.path,
-                  qty: 3
-                }]
-              : []
-          });
-
-        new Notice("Encounter created");
+        return true;
       }
     });
   }

@@ -1,4 +1,4 @@
-import { App, normalizePath, TFolder } from "obsidian";
+import { App, normalizePath, TFile, TFolder } from "obsidian";
 
 import { EncounterData } from "../types/encounters";
 import { generateEncounterMarkdown } from "../templates/encounterTemplate";
@@ -38,4 +38,14 @@ export class EncounterService {
 
     await this.app.vault.createFolder(path);
   }
+
+  async updateEncounterNote(
+    file: TFile,
+    encounter: EncounterData
+  ): Promise<void> {
+    const content = generateEncounterMarkdown(encounter);
+
+    await this.app.vault.modify(file, content);
+  }
+
 }

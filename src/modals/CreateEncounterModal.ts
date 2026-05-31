@@ -1,4 +1,4 @@
-import { App, Modal, Notice, Setting } from "obsidian";
+import { App, Modal, Notice, Setting, TFile } from "obsidian";
 
 import { showMonsterPreview } from "../components/MonsterPreviewPopover";
 import { EncounterService } from "../services/EncounterService";
@@ -32,19 +32,32 @@ export class CreateEncounterModal extends Modal {
   treasure = "";
   notes = "";
 
+  private fileToEdit?: TFile;
+
+  private get isEditing(): boolean {
+    return !!this.fileToEdit;
+  }
+
   constructor(
     app: App,
     monsterIndex: MonsterIndex,
-    encounterService: EncounterService
+    encounterService: EncounterService,
+    fileToEdit?: TFile
   ) {
     super(app);
 
     this.monsterIndex = monsterIndex;
     this.encounterService = encounterService;
+    this.fileToEdit = fileToEdit;
   }
 
-  onOpen(): void {
+  async onOpen(): Promise<void> {
     this.modalEl.addClass("sd-encounter-modal");
+
+    if (this.fileToEdit) {
+      await this.loadEncounterFromFile(this.fileToEdit);
+    }
+
     this.render();
   }
 
@@ -58,8 +71,10 @@ export class CreateEncounterModal extends Modal {
     contentEl.empty();
 
     contentEl.createEl("h2", {
-      text: "Create Shadowdark Encounter"
-    });
+    text: this.isEditing
+      ? "Edit Shadowdark Encounter"
+      : "Create Shadowdark Encounter"
+  });
 
     this.renderStepIndicator(contentEl);
 
@@ -459,10 +474,12 @@ export class CreateEncounterModal extends Modal {
         }
       },
       {
-        label: "Create Encounter",
+        label: this.isEditing
+          ? "Save Encounter"
+          : "Create Encounter",
         cta: true,
         onClick: async () => {
-          await this.createEncounter();
+          await this.saveEncounter();
         }
       }
     ]);
@@ -743,7 +760,74 @@ export class CreateEncounterModal extends Modal {
     this.renderEncounterSummary();
   }
 
-  async createEncounter(): Promise<void> {
+  private async loadEncounterFromFile(file: TFile): Promise<void> {
+    const cache = this.app.metadataCache.getFileCache(file);
+    const frontmatter = cache?.frontmatter;
+
+    if (!frontmatter || frontmatter.shadowdarkType !== "encounter") {
+      new Notice("This file is not a Shadowdark encounter.");
+      return;
+    }
+
+    this.encounterName =
+      String(frontmatter.name ?? file.basename);
+
+    this.partyLevel =
+      Number(frontmatter.partyLevel ?? 1);
+
+    this.partySize =
+      Number(frontmatter.partySize ?? 4);
+
+    this.selectedMonsters = Array.isArray(frontmatter.monsters)
+      ? frontmatter.monsters.map((monster: Record<string, unknown>) => ({
+          name: String(monster.name ?? "Unknown Monster"),
+          path: String(monster.path ?? ""),
+          qty: Number(monster.qty ?? 1),
+          level: String(monster.level ?? ""),
+          ac: String(monster.ac ?? ""),
+          hp: String(monster.hp ?? "")
+        }))
+      : [];
+
+    const content = await this.app.vault.read(file);
+
+    this.setup = this.extractSection(content, "Setup");
+    this.readAloud = this.extractSection(content, "Read-Aloud");
+    this.tactics = this.extractSection(content, "Tactics");
+    this.treasure = this.extractSection(content, "Treasure");
+    this.notes = this.extractSection(content, "Notes");
+  }
+
+  private extractSection(
+    content: string,
+    heading: string
+  ): string {
+    const lines = content.split(/\r?\n/);
+
+    const startIndex = lines.findIndex(
+      (line) => line.trim() === `## ${heading}`
+    );
+
+    if (startIndex === -1) {
+      return "";
+    }
+
+    const sectionLines: string[] = [];
+
+    for (let i = startIndex + 1; i < lines.length; i++) {
+      const line = lines[i];
+
+      if (/^##\s+/.test(line.trim())) {
+        break;
+      }
+
+      sectionLines.push(line);
+    }
+
+    return sectionLines.join("\n").trim();
+  }
+
+  async saveEncounter(): Promise<void> {
     const name = this.encounterName.trim();
 
     if (!name) {
@@ -752,13 +836,29 @@ export class CreateEncounterModal extends Modal {
     }
 
     try {
-      await this.encounterService.createEncounterNote(this.getEncounterData());
+      if (this.fileToEdit) {
+        await this.encounterService.updateEncounterNote(
+          this.fileToEdit,
+          this.getEncounterData()
+        );
 
-      new Notice("Encounter created.");
+        await new Promise((resolve) => window.setTimeout(resolve, 100));
+
+        await this.app.workspace.getLeaf(false).openFile(this.fileToEdit);
+
+        new Notice("Encounter saved.");
+      } else {
+        await this.encounterService.createEncounterNote(
+          this.getEncounterData()
+        );
+
+        new Notice("Encounter created.");
+      }
+
       this.close();
     } catch (error) {
-      console.error("Failed to create encounter:", error);
-      new Notice("Failed to create encounter. Check console.");
+      console.error("Failed to save encounter:", error);
+      new Notice("Failed to save encounter. Check console.");
     }
   }
 }

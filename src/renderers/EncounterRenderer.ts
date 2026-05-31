@@ -4,9 +4,7 @@ import {
   Notice,
   TFile
 } from "obsidian";
-
 import ShadowdarkEncountersPlugin from "../main";
-
 import { parseFrontmatter } from "../statblocksCompat/parseFrontMatter";
 import { renderMonsterBlock } from "../statblocksCompat/renderMonsterBlock";
 import { DEFAULT_STATBLOCK_RENDER_SETTINGS } from "../statblocksCompat/settings";
@@ -90,6 +88,49 @@ export class EncounterRenderer {
     this.renderCompactMonsterRoster(container, frontmatter);
   }
 
+  getEncounterDifficulty(
+    frontmatter: Record<string, any>
+  ): string {
+    const partyLevel = Number(frontmatter.partyLevel ?? 1);
+    const partySize = Number(frontmatter.partySize ?? 4);
+
+    const monsters = Array.isArray(frontmatter.monsters)
+      ? frontmatter.monsters
+      : [];
+
+    const partyPower = partyLevel * partySize;
+
+    const monsterPower = monsters.reduce(
+      (sum: number, monster: Record<string, any>) => {
+        const qty = Number(monster.qty ?? 1);
+        const level = Number(monster.level ?? 0);
+
+        return sum + qty * level;
+      },
+      0
+    );
+
+    if (monsterPower <= 0) {
+      return "None";
+    }
+
+    const ratio = monsterPower / partyPower;
+
+    if (ratio < 0.5) {
+      return "Easy";
+    }
+
+    if (ratio < 0.85) {
+      return "Standard";
+    }
+
+    if (ratio < 1.25) {
+      return "Hard";
+    }
+
+    return "Deadly";
+  }
+
   renderDashboardStats(
     container: HTMLElement,
     frontmatter: Record<string, any>
@@ -125,12 +166,16 @@ export class EncounterRenderer {
         ? totalLevels / countedMonsters
         : 0;
 
+    const difficulty =
+      this.getEncounterDifficulty(frontmatter);
+
     container.createEl("p", {
       cls: "sd-encounter-rendered-stats",
       text:
         `${totalMonsters} Monsters` +
         ` • ${uniqueMonsters} Unique` +
-        ` • Avg Lv ${averageLevel.toFixed(1)}`
+        ` • Avg Lv ${averageLevel.toFixed(1)}` +
+        ` • ${difficulty}`
     });
   }
 
