@@ -224,3 +224,30 @@
   font-style: italic;
   margin-bottom: 0;
 }
+
+.sd-encounter-statblock-preview {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.sd-encounter-statblock-preview-inner {
+  max-width: min(520px, 90vw);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.sd-encounter-statblock-preview-close {
+  position: fixed;
+  top: 24px;
+  right: 32px;
+
+  font-size: 24px;
+  line-height: 1;
+}

@@ -7,6 +7,10 @@ import {
 
 import ShadowdarkEncountersPlugin from "../main";
 
+import { parseFrontmatter } from "../statblocksCompat/parseFrontMatter";
+import { renderMonsterBlock } from "../statblocksCompat/renderMonsterBlock";
+import { DEFAULT_STATBLOCK_RENDER_SETTINGS } from "../statblocksCompat/settings";
+
 export class EncounterRenderer {
   plugin: ShadowdarkEncountersPlugin;
 
@@ -212,6 +216,16 @@ export class EncounterRenderer {
     menu.addSeparator();
 
     menu.addItem((item) => {
+      item
+        .setTitle("Preview Statblock")
+        .onClick(async () => {
+          await this.showMonsterStatblockPreview(monster);
+        });
+    });
+
+    menu.addSeparator();
+
+    menu.addItem((item) => {
       item.setTitle(
         [
           monster.level ? `LV ${monster.level}` : null,
@@ -264,5 +278,71 @@ export class EncounterRenderer {
     await this.plugin.app.workspace
       .getLeaf(false)
       .openFile(file);
+  }
+
+  async showMonsterStatblockPreview(
+    monster: Record<string, any>
+  ): Promise<void> {
+    const path = monster.path;
+
+    if (typeof path !== "string" || path.length === 0) {
+      new Notice("Monster file not found.");
+      return;
+    }
+
+    const file =
+      this.plugin.app.vault.getAbstractFileByPath(path);
+
+    if (!(file instanceof TFile)) {
+      new Notice("Monster file not found.");
+      return;
+    }
+
+    const cache =
+      this.plugin.app.metadataCache.getFileCache(file);
+
+    const frontmatter = cache?.frontmatter;
+
+    if (!frontmatter) {
+      new Notice("Monster has no frontmatter.");
+      return;
+    }
+
+    const result = parseFrontmatter(frontmatter);
+
+    if (!result.success || !result.data) {
+      new Notice("Could not parse monster.");
+      return;
+    }
+
+    const previewEl = document.body.createDiv({
+      cls: "sd-encounter-statblock-preview"
+    });
+
+    const innerEl = previewEl.createDiv({
+      cls: "sd-encounter-statblock-preview-inner"
+    });
+
+    renderMonsterBlock(
+      innerEl,
+      result.data,
+      DEFAULT_STATBLOCK_RENDER_SETTINGS,
+      result.warnings
+    );
+
+    const closeButton = previewEl.createEl("button", {
+      cls: "sd-encounter-statblock-preview-close",
+      text: "×"
+    });
+
+    closeButton.addEventListener("click", () => {
+      previewEl.remove();
+    });
+
+    previewEl.addEventListener("click", (event) => {
+      if (event.target === previewEl) {
+        previewEl.remove();
+      }
+    });
   }
 }
