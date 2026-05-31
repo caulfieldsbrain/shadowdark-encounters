@@ -175,3 +175,46 @@
 .sd-encounter-wizard-footer button {
   min-width: 110px;
 }
+
+.sd-encounter-rendered {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: var(--background-secondary);
+}
+
+.sd-encounter-rendered h2 {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+.sd-encounter-rendered-meta {
+  color: var(--text-muted);
+  margin-bottom: 0;
+}
+
+.sd-encounter-rendered-stats {
+  color: var(--text-muted);
+  margin: 4px 0 12px;
+}
+
+.sd-encounter-rendered-roster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sd-encounter-rendered-monster {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  cursor: pointer;
+}
+
+.sd-encounter-rendered-monster:hover {
+  border-color: var(--interactive-accent);
+  color: var(--text-accent);
+}

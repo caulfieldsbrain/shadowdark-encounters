@@ -4,11 +4,15 @@ import { MonsterIndex } from "./services/MonsterIndex";
 import { EncounterService } from "./services/EncounterService";
 import { CreateEncounterModal } from "./modals/CreateEncounterModal";
 
+import { EncounterRenderer } from "./renderers/EncounterRenderer";
+
 export default class ShadowdarkEncountersPlugin extends Plugin {
 
   monsterIndex!: MonsterIndex;
 
   encounterService!: EncounterService;
+
+  encounterRenderer!: EncounterRenderer;
 
   async onload(): Promise<void> {
 
@@ -19,6 +23,9 @@ export default class ShadowdarkEncountersPlugin extends Plugin {
 
     this.encounterService =
       new EncounterService(this.app);
+
+    this.encounterRenderer = new EncounterRenderer(this);
+    this.encounterRenderer.register();
 
     this.addCommand({
       id: "create-shadowdark-encounter",
