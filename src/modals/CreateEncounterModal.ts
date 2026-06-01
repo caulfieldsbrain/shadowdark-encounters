@@ -1,12 +1,17 @@
-import { App, Modal, Notice, Setting, TFile } from "obsidian";
+import { App, MarkdownView, Modal, Notice, TFile } from "obsidian";
 
 import { showMonsterPreview } from "../components/MonsterPreviewPopover";
 import { EncounterService } from "../services/EncounterService";
 import { MonsterIndex } from "../services/MonsterIndex";
 import { generateEncounterMarkdown } from "../templates/encounterTemplate";
-import { EncounterData, MonsterReference, MonsterSummary } from "../types/encounters";
+import {
+  EncounterData,
+  MonsterReference,
+  MonsterSummary
+} from "../types/encounters";
 
 type EncounterWizardStep = "monsters" | "details" | "preview";
+type EncounterModalMode = "create" | "edit" | "duplicate";
 
 export class CreateEncounterModal extends Modal {
   monsterIndex: MonsterIndex;
@@ -15,7 +20,6 @@ export class CreateEncounterModal extends Modal {
   currentStep: EncounterWizardStep = "monsters";
 
   encounterName = "";
-
   selectedMonsters: MonsterReference[] = [];
 
   monsterSearch = "";
@@ -33,22 +37,29 @@ export class CreateEncounterModal extends Modal {
   notes = "";
 
   private fileToEdit?: TFile;
+  private mode: EncounterModalMode = "create";
 
   private get isEditing(): boolean {
-    return !!this.fileToEdit;
+    return this.mode === "edit";
+  }
+
+  private get isDuplicating(): boolean {
+    return this.mode === "duplicate";
   }
 
   constructor(
     app: App,
     monsterIndex: MonsterIndex,
     encounterService: EncounterService,
-    fileToEdit?: TFile
+    fileToEdit?: TFile,
+    mode: EncounterModalMode = fileToEdit ? "edit" : "create"
   ) {
     super(app);
 
     this.monsterIndex = monsterIndex;
     this.encounterService = encounterService;
     this.fileToEdit = fileToEdit;
+    this.mode = mode;
   }
 
   async onOpen(): Promise<void> {
@@ -71,10 +82,12 @@ export class CreateEncounterModal extends Modal {
     contentEl.empty();
 
     contentEl.createEl("h2", {
-    text: this.isEditing
-      ? "Edit Shadowdark Encounter"
-      : "Create Shadowdark Encounter"
-  });
+      text: this.isEditing
+        ? "Edit Shadowdark Encounter"
+        : this.isDuplicating
+          ? "Duplicate Shadowdark Encounter"
+          : "Create Shadowdark Encounter"
+    });
 
     this.renderStepIndicator(contentEl);
 
@@ -104,16 +117,28 @@ export class CreateEncounterModal extends Modal {
   }
 
   renderMonsterStep(contentEl: HTMLElement): void {
-    new Setting(contentEl)
-      .setName("Encounter name")
-      .addText((text) => {
-        text.setPlaceholder("Goblin Ambush");
-        text.setValue(this.encounterName);
+    const nameRow = contentEl.createDiv({
+      cls: "sd-encounter-name-row"
+    });
 
-        text.onChange((value) => {
-          this.encounterName = value;
-        });
-      });
+    const nameField = nameRow.createDiv({
+      cls: "sd-encounter-name-field"
+    });
+
+    nameField.createEl("label", {
+      text: "Encounter Name"
+    });
+
+    const nameInput = nameField.createEl("input", {
+      type: "text",
+      placeholder: "Goblin Ambush"
+    });
+
+    nameInput.value = this.encounterName;
+
+    nameInput.addEventListener("input", () => {
+      this.encounterName = nameInput.value;
+    });
 
     const builderEl = contentEl.createDiv({
       cls: "sd-encounter-builder"
@@ -159,21 +184,21 @@ export class CreateEncounterModal extends Modal {
       cls: "sd-encounter-create-button"
     });
 
-    new Setting(buttonEl)
-      .addButton((button) => {
-        button
-          .setButtonText("Next")
-          .setCta()
-          .onClick(() => {
-            if (!this.encounterName.trim()) {
-              new Notice("Encounter name is required.");
-              return;
-            }
+    this.renderFooterButtons(buttonEl, [
+      {
+        label: "Next",
+        cta: true,
+        onClick: () => {
+          if (!this.encounterName.trim()) {
+            new Notice("Encounter name is required.");
+            return;
+          }
 
-            this.currentStep = "details";
-            this.render();
-          });
-      });
+          this.currentStep = "details";
+          this.render();
+        }
+      }
+    ]);
 
     this.renderMonsterResults();
     this.renderSelectedMonsters();
@@ -455,7 +480,7 @@ export class CreateEncounterModal extends Modal {
     });
 
     previewEl.createEl("p", {
-      text: "Preview the markdown that will be created."
+      text: "Preview the markdown that will be saved."
     });
 
     const markdownPreview = previewEl.createEl("textarea", {
@@ -476,7 +501,9 @@ export class CreateEncounterModal extends Modal {
       {
         label: this.isEditing
           ? "Save Encounter"
-          : "Create Encounter",
+          : this.isDuplicating
+            ? "Create Duplicate"
+            : "Create Encounter",
         cta: true,
         onClick: async () => {
           await this.saveEncounter();
@@ -493,13 +520,11 @@ export class CreateEncounterModal extends Modal {
       onClick: () => void | Promise<void>;
     }[]
   ): void {
-
     const footerEl = containerEl.createDiv({
       cls: "sd-encounter-wizard-footer"
     });
 
     for (const buttonConfig of buttons) {
-
       const button = footerEl.createEl("button", {
         text: buttonConfig.label
       });
@@ -526,6 +551,73 @@ export class CreateEncounterModal extends Modal {
       treasure: this.treasure,
       notes: this.notes
     };
+  }
+
+  private async loadEncounterFromFile(file: TFile): Promise<void> {
+    const cache = this.app.metadataCache.getFileCache(file);
+    const frontmatter = cache?.frontmatter;
+
+    if (!frontmatter || frontmatter.shadowdarkType !== "encounter") {
+      new Notice("This file is not a Shadowdark encounter.");
+      return;
+    }
+
+    this.encounterName = String(frontmatter.name ?? file.basename);
+
+    if (this.isDuplicating) {
+      this.encounterName = `${this.encounterName} Copy`;
+    }
+
+    this.partyLevel = Number(frontmatter.partyLevel ?? 1);
+    this.partySize = Number(frontmatter.partySize ?? 4);
+
+    this.selectedMonsters = Array.isArray(frontmatter.monsters)
+      ? frontmatter.monsters.map((monster: Record<string, unknown>) => ({
+          name: String(monster.name ?? "Unknown Monster"),
+          path: String(monster.path ?? ""),
+          qty: Number(monster.qty ?? 1),
+          level: String(monster.level ?? ""),
+          ac: String(monster.ac ?? ""),
+          hp: String(monster.hp ?? "")
+        }))
+      : [];
+
+    const content = await this.app.vault.read(file);
+
+    this.setup = this.extractSection(content, "Setup");
+    this.readAloud = this.extractSection(content, "Read-Aloud");
+    this.tactics = this.extractSection(content, "Tactics");
+    this.treasure = this.extractSection(content, "Treasure");
+    this.notes = this.extractSection(content, "Notes");
+  }
+
+  private extractSection(
+    content: string,
+    heading: string
+  ): string {
+    const lines = content.split(/\r?\n/);
+
+    const startIndex = lines.findIndex(
+      (line) => line.trim() === `## ${heading}`
+    );
+
+    if (startIndex === -1) {
+      return "";
+    }
+
+    const sectionLines: string[] = [];
+
+    for (let i = startIndex + 1; i < lines.length; i++) {
+      const line = lines[i];
+
+      if (/^##\s+/.test(line.trim())) {
+        break;
+      }
+
+      sectionLines.push(line);
+    }
+
+    return sectionLines.join("\n").trim();
   }
 
   getAvailableTags(): string[] {
@@ -591,32 +683,58 @@ export class CreateEncounterModal extends Modal {
     monsters = monsters.slice(0, 100);
 
     for (const monster of monsters) {
-      new Setting(resultsEl)
-        .setName(monster.name)
-        .setDesc(
-          [
-            monster.level ? `LV ${monster.level}` : null,
-            monster.ac ? `AC ${monster.ac}` : null,
-            monster.hp ? `HP ${monster.hp}` : null
-          ]
-            .filter(Boolean)
-            .join(" • ") || monster.path
-        )
-        .addButton((button) => {
-          button
-            .setButtonText("Preview")
-            .onClick((event) => {
-              showMonsterPreview(this.app, event, monster);
-            });
-        })
-        .addButton((button) => {
-          button
-            .setButtonText("Add")
-            .setCta()
-            .onClick(() => {
-              this.addMonster(monster);
-            });
-        });
+      const row = new DocumentFragment();
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "sd-encounter-monster-row";
+
+      const info = document.createElement("div");
+      info.className = "sd-encounter-monster-info";
+
+      const name = document.createElement("div");
+      name.className = "sd-encounter-monster-name";
+      name.textContent = monster.name;
+
+      const meta = document.createElement("div");
+      meta.className = "sd-encounter-monster-meta";
+      meta.textContent =
+        [
+          monster.level ? `LV ${monster.level}` : null,
+          monster.ac ? `AC ${monster.ac}` : null,
+          monster.hp ? `HP ${monster.hp}` : null
+        ]
+          .filter(Boolean)
+          .join(" • ") || monster.path;
+
+      info.appendChild(name);
+      info.appendChild(meta);
+
+      const actions = document.createElement("div");
+      actions.className = "sd-encounter-monster-actions";
+
+      const previewButton = document.createElement("button");
+      previewButton.textContent = "Preview";
+
+      previewButton.addEventListener("click", (event) => {
+        showMonsterPreview(this.app, event, monster);
+      });
+
+      const addButton = document.createElement("button");
+      addButton.textContent = "Add";
+      addButton.classList.add("mod-cta");
+
+      addButton.addEventListener("click", () => {
+        this.addMonster(monster);
+      });
+
+      actions.appendChild(previewButton);
+      actions.appendChild(addButton);
+
+      wrapper.appendChild(info);
+      wrapper.appendChild(actions);
+
+      row.appendChild(wrapper);
+      resultsEl.appendChild(row);
     }
   }
 
@@ -640,35 +758,54 @@ export class CreateEncounterModal extends Modal {
     }
 
     for (const monster of this.selectedMonsters) {
-      new Setting(selectedEl)
-        .setName(monster.name)
-        .setDesc(monster.path)
-        .addText((text) => {
-          text.setValue(String(monster.qty));
+      const rowEl = selectedEl.createDiv({
+        cls: "sd-encounter-selected-row"
+      });
 
-          text.onChange((value) => {
-            const qty = Number(value);
+      const infoEl = rowEl.createDiv({
+        cls: "sd-encounter-selected-info"
+      });
 
-            monster.qty =
-              Number.isFinite(qty) && qty > 0
-                ? Math.floor(qty)
-                : 1;
+      infoEl.createDiv({
+        cls: "sd-encounter-selected-name",
+        text: monster.name
+      });
 
-            this.renderEncounterSummary();
-          });
-        })
-        .addButton((button) => {
-          button
-            .setButtonText("Remove")
-            .onClick(() => {
-              this.selectedMonsters = this.selectedMonsters.filter(
-                (selected) => selected.path !== monster.path
-              );
+      infoEl.createDiv({
+        cls: "sd-encounter-selected-path",
+        text: monster.path
+      });
 
-              this.renderSelectedMonsters();
-              this.renderEncounterSummary();
-            });
-        });
+      const qtyInput = rowEl.createEl("input", {
+        type: "number"
+      });
+
+      qtyInput.value = String(monster.qty);
+      qtyInput.min = "1";
+
+      qtyInput.addEventListener("change", () => {
+        const qty = Number(qtyInput.value);
+
+        monster.qty =
+          Number.isFinite(qty) && qty > 0
+            ? Math.floor(qty)
+            : 1;
+
+        this.renderEncounterSummary();
+      });
+
+      const removeButton = rowEl.createEl("button", {
+        text: "Remove"
+      });
+
+      removeButton.addEventListener("click", () => {
+        this.selectedMonsters = this.selectedMonsters.filter(
+          (selected) => selected.path !== monster.path
+        );
+
+        this.renderSelectedMonsters();
+        this.renderEncounterSummary();
+      });
     }
   }
 
@@ -760,73 +897,6 @@ export class CreateEncounterModal extends Modal {
     this.renderEncounterSummary();
   }
 
-  private async loadEncounterFromFile(file: TFile): Promise<void> {
-    const cache = this.app.metadataCache.getFileCache(file);
-    const frontmatter = cache?.frontmatter;
-
-    if (!frontmatter || frontmatter.shadowdarkType !== "encounter") {
-      new Notice("This file is not a Shadowdark encounter.");
-      return;
-    }
-
-    this.encounterName =
-      String(frontmatter.name ?? file.basename);
-
-    this.partyLevel =
-      Number(frontmatter.partyLevel ?? 1);
-
-    this.partySize =
-      Number(frontmatter.partySize ?? 4);
-
-    this.selectedMonsters = Array.isArray(frontmatter.monsters)
-      ? frontmatter.monsters.map((monster: Record<string, unknown>) => ({
-          name: String(monster.name ?? "Unknown Monster"),
-          path: String(monster.path ?? ""),
-          qty: Number(monster.qty ?? 1),
-          level: String(monster.level ?? ""),
-          ac: String(monster.ac ?? ""),
-          hp: String(monster.hp ?? "")
-        }))
-      : [];
-
-    const content = await this.app.vault.read(file);
-
-    this.setup = this.extractSection(content, "Setup");
-    this.readAloud = this.extractSection(content, "Read-Aloud");
-    this.tactics = this.extractSection(content, "Tactics");
-    this.treasure = this.extractSection(content, "Treasure");
-    this.notes = this.extractSection(content, "Notes");
-  }
-
-  private extractSection(
-    content: string,
-    heading: string
-  ): string {
-    const lines = content.split(/\r?\n/);
-
-    const startIndex = lines.findIndex(
-      (line) => line.trim() === `## ${heading}`
-    );
-
-    if (startIndex === -1) {
-      return "";
-    }
-
-    const sectionLines: string[] = [];
-
-    for (let i = startIndex + 1; i < lines.length; i++) {
-      const line = lines[i];
-
-      if (/^##\s+/.test(line.trim())) {
-        break;
-      }
-
-      sectionLines.push(line);
-    }
-
-    return sectionLines.join("\n").trim();
-  }
-
   async saveEncounter(): Promise<void> {
     const name = this.encounterName.trim();
 
@@ -836,23 +906,42 @@ export class CreateEncounterModal extends Modal {
     }
 
     try {
-      if (this.fileToEdit) {
+      if (this.isEditing && this.fileToEdit) {
         await this.encounterService.updateEncounterNote(
           this.fileToEdit,
           this.getEncounterData()
         );
 
-        await new Promise((resolve) => window.setTimeout(resolve, 100));
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, 300)
+        );
 
-        await this.app.workspace.getLeaf(false).openFile(this.fileToEdit);
+        const leaf = this.app.workspace.getLeaf(false);
+
+        await this.encounterService.updateEncounterNote(
+          this.fileToEdit,
+          this.getEncounterData()
+        );
+
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, 300)
+        );
+
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+
+        await view?.previewMode.rerender(true);
 
         new Notice("Encounter saved.");
-      } else {
+      }else {
         await this.encounterService.createEncounterNote(
           this.getEncounterData()
         );
 
-        new Notice("Encounter created.");
+        new Notice(
+          this.isDuplicating
+            ? "Encounter duplicated."
+            : "Encounter created."
+        );
       }
 
       this.close();

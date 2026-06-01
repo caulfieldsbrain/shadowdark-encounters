@@ -251,3 +251,58 @@
   font-size: 24px;
   line-height: 1;
 }
+
+.sd-encounter-monster-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+
+  padding: 8px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.sd-encounter-monster-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sd-encounter-monster-name {
+  font-weight: 600;
+}
+
+.sd-encounter-monster-meta {
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
+.sd-encounter-monster-actions {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.sd-encounter-selected-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.sd-encounter-selected-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sd-encounter-selected-name {
+  font-weight: 600;
+}
+
+.sd-encounter-selected-path {
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.sd-encounter-selected-row input[type="number"] {
+  width: 60px;
+}

@@ -40,6 +40,37 @@ export default class ShadowdarkEncountersPlugin extends Plugin {
     });
 
     this.addCommand({
+      id: "duplicate-shadowdark-encounter",
+      name: "Duplicate Current Shadowdark Encounter",
+      checkCallback: (checking) => {
+        const file = this.app.workspace.getActiveFile();
+
+        if (!file) {
+          return false;
+        }
+
+        const cache = this.app.metadataCache.getFileCache(file);
+        const frontmatter = cache?.frontmatter;
+
+        if (frontmatter?.shadowdarkType !== "encounter") {
+          return false;
+        }
+
+        if (!checking) {
+          new CreateEncounterModal(
+            this.app,
+            this.monsterIndex,
+            this.encounterService,
+            file,
+            "duplicate"
+          ).open();
+        }
+
+        return true;
+      }
+    });
+
+    this.addCommand({
       id: "edit-shadowdark-encounter",
       name: "Edit Current Shadowdark Encounter",
       checkCallback: (checking) => {

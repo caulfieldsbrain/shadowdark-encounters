@@ -55,6 +55,10 @@ export class EncounterRenderer {
       return;
     }
 
+    const existingRender = el.querySelector(
+      ".sd-encounter-rendered"
+    );
+
     if (el.querySelector(".sd-encounter-rendered")) {
       return;
     }
