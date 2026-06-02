@@ -1,8 +1,6 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
-
+    
     "inlineSourceMap": true,
     "inlineSources": true,
 
@@ -20,5 +18,6 @@
 
     "lib": ["DOM", "ES2020"]
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+   "exclude": ["main.js"]
 }

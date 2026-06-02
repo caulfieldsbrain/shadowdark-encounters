@@ -1,7 +1,7 @@
 {
   "id": "shadowdark-encounters",
   "name": "Shadowdark Encounters",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "minAppVersion": "1.5.0",
   "description": "Create Shadowdark RPG encounters for your campaigns. Optionally integrates with Shadowdark Statblocks to quickly add monsters to encounters.",
   "author": "caulfieldsbrain",

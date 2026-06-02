@@ -6,7 +6,17 @@ import { CreateEncounterModal } from "./modals/CreateEncounterModal";
 
 import { EncounterRenderer } from "./renderers/EncounterRenderer";
 
+import {
+  ShadowdarkEncountersSettings,
+  DEFAULT_SETTINGS
+} from "./settings";
+
+import { ShadowdarkEncountersSettingTab }
+  from "./settings/ShadowdarkEncountersSettingTab";
+
 export default class ShadowdarkEncountersPlugin extends Plugin {
+
+  settings!: ShadowdarkEncountersSettings;
 
   monsterIndex!: MonsterIndex;
 
@@ -18,7 +28,16 @@ export default class ShadowdarkEncountersPlugin extends Plugin {
 
     console.log("Loading Shadowdark Encounters");
 
-    this.monsterIndex =
+    await this.loadSettings();
+
+    this.addSettingTab(
+      new ShadowdarkEncountersSettingTab(
+        this.app,
+        this
+      )
+    );
+
+    this.monsterIndex = 
       new MonsterIndex(this.app);
 
     this.encounterService =
@@ -105,6 +124,18 @@ export default class ShadowdarkEncountersPlugin extends Plugin {
     getAllMonsters: () =>
         this.monsterIndex.getAllMonsters()
     };
+
+  async loadSettings(): Promise<void> {
+    this.settings = Object.assign(
+      {},
+      DEFAULT_SETTINGS,
+      await this.loadData()
+    );
+  }
+
+  async saveSettings(): Promise<void> {
+    await this.saveData(this.settings);
+  }
 
   onunload(): void {
     console.log("Unloading Shadowdark Encounters");
