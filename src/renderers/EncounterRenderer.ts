@@ -16,21 +16,86 @@ export class EncounterRenderer {
     this.plugin = plugin;
   }
 
+  extractSection(
+    content: string,
+    heading: string
+  ): string {
+    const lines = content.split(/\r?\n/);
+
+    const startIndex = lines.findIndex(
+      (line) => line.trim() === `## ${heading}`
+    );
+
+    if (startIndex === -1) {
+      return "";
+    }
+
+    const sectionLines: string[] = [];
+
+    for (let i = startIndex + 1; i < lines.length; i++) {
+      const line = lines[i];
+
+      if (/^##\s+/.test(line.trim())) {
+        break;
+      }
+
+      sectionLines.push(line);
+    }
+
+    return sectionLines.join("\n").trim();
+  }
+
+  renderInitiative(
+    container: HTMLElement,
+    frontmatter: Record<string, any>
+  ): void {
+    const initiative = Array.isArray(frontmatter.initiative)
+      ? frontmatter.initiative
+      : [];
+
+    if (initiative.length === 0) {
+      return;
+    }
+
+    const initiativeEl = container.createDiv({
+      cls: "sd-encounter-rendered-initiative"
+    });
+
+    initiativeEl.createEl("h3", {
+      text: "Initiative"
+    });
+
+    const listEl = initiativeEl.createEl("ul");
+
+    for (const entry of initiative) {
+      const itemEl = listEl.createEl("li");
+
+      itemEl.createEl("span", {
+        cls: "sd-encounter-initiative-roll",
+        text: String(entry.initiative ?? 0)
+      });
+
+      itemEl.createEl("span", {
+        text: String(entry.name ?? "Unknown")
+      });
+    }
+  }
+
   register(): void {
     this.plugin.registerMarkdownPostProcessor(
       (
         el: HTMLElement,
         ctx: MarkdownPostProcessorContext
       ) => {
-        this.process(el, ctx);
+        void this.process(el, ctx);
       }
     );
   }
 
-  process(
+  async process(
     el: HTMLElement,
     ctx: MarkdownPostProcessorContext
-  ): void {
+  ): Promise<void> {
     const sectionInfo = ctx.getSectionInfo(el);
 
     if (!sectionInfo || sectionInfo.lineStart !== 0) {
@@ -54,6 +119,8 @@ export class EncounterRenderer {
     if (frontmatter?.shadowdarkType !== "encounter") {
       return;
     }
+
+    const content = await this.plugin.app.vault.read(file);
 
     const existingRender = el.querySelector(
       ".sd-encounter-rendered"
@@ -90,6 +157,7 @@ export class EncounterRenderer {
 
     this.renderDashboardStats(container, frontmatter);
     this.renderCompactMonsterRoster(container, frontmatter);
+    this.renderInitiative(container, frontmatter);
   }
 
   getEncounterDifficulty(

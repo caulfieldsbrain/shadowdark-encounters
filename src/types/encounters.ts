@@ -6,6 +6,7 @@ export interface MonsterReference {
   level?: string;
   ac?: string;
   hp?: string;
+  dex?: string;
 }
 
 export interface EncounterData {
@@ -18,6 +19,8 @@ export interface EncounterData {
 
   terrain?: string;
   light?: string;
+
+  initiativeMode?: EncounterInitiativeMode;
 
   monsters: MonsterReference[];
 
@@ -37,10 +40,14 @@ export interface MonsterSummary {
   level?: string;
   ac?: string;
   hp?: string;
+  dex?: string;
 
   atk?: string;
-
   traits?: string[];
-
   tags?: string[];
 }
+
+export type EncounterInitiativeMode =
+  | "shadowdark_raw"
+  | "individual_monsters"
+  | "none";

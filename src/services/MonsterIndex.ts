@@ -60,14 +60,15 @@ export class MonsterIndex {
       level: frontmatter.level,
       ac: frontmatter.ac,
       hp: frontmatter.hp,
+      dex: frontmatter.dex ?? frontmatter.stats?.dex,
 
       atk: Array.isArray(frontmatter.atk)
-          ? frontmatter.atk[0]
-          : frontmatter.atk,
+        ? frontmatter.atk[0]
+        : frontmatter.atk,
 
       traits: Array.isArray(frontmatter.traits)
-          ? frontmatter.traits.slice(0, 2)
-          : [],
+        ? frontmatter.traits.slice(0, 2)
+        : [],
 
       tags: frontmatter.tags || []
     };

@@ -6,6 +6,7 @@ import { MonsterIndex } from "../services/MonsterIndex";
 import { generateEncounterMarkdown } from "../templates/encounterTemplate";
 import {
   EncounterData,
+  EncounterInitiativeMode,
   MonsterReference,
   MonsterSummary
 } from "../types/encounters";
@@ -29,6 +30,8 @@ export class CreateEncounterModal extends Modal {
 
   partyLevel = 1;
   partySize = 4;
+
+  initiativeMode: EncounterInitiativeMode = "individual_monsters";
 
   setup = "";
   readAloud = "";
@@ -381,6 +384,38 @@ export class CreateEncounterModal extends Modal {
           : 4;
     });
 
+    const initiativeField = detailsEl.createDiv({
+      cls: "sd-encounter-details-field"
+    });
+
+    initiativeField.createEl("label", {
+      text: "Initiative Mode"
+    });
+
+    const initiativeSelect = initiativeField.createEl("select");
+
+    initiativeSelect.createEl("option", {
+      text: "Individual Monsters",
+      value: "individual_monsters"
+    });
+
+    initiativeSelect.createEl("option", {
+      text: "Shadowdark RAW",
+      value: "shadowdark_raw"
+    });
+
+    initiativeSelect.createEl("option", {
+      text: "None",
+      value: "none"
+    });
+
+    initiativeSelect.value = this.initiativeMode;
+
+    initiativeSelect.addEventListener("change", () => {
+      this.initiativeMode =
+        initiativeSelect.value as EncounterInitiativeMode;
+    });
+
     detailsEl.createEl("p", {
       text: "Add optional GM-facing details for this encounter."
     });
@@ -544,6 +579,7 @@ export class CreateEncounterModal extends Modal {
       name: this.encounterName.trim(),
       partyLevel: this.partyLevel,
       partySize: this.partySize,
+      initiativeMode: this.initiativeMode,
       monsters: this.selectedMonsters,
       setup: this.setup,
       readAloud: this.readAloud,
@@ -562,6 +598,13 @@ export class CreateEncounterModal extends Modal {
       return;
     }
 
+    this.initiativeMode =
+      frontmatter.initiativeMode === "shadowdark_raw" ||
+      frontmatter.initiativeMode === "individual_monsters" ||
+      frontmatter.initiativeMode === "none"
+        ? frontmatter.initiativeMode
+        : "individual_monsters";
+
     this.encounterName = String(frontmatter.name ?? file.basename);
 
     if (this.isDuplicating) {
@@ -578,7 +621,8 @@ export class CreateEncounterModal extends Modal {
           qty: Number(monster.qty ?? 1),
           level: String(monster.level ?? ""),
           ac: String(monster.ac ?? ""),
-          hp: String(monster.hp ?? "")
+          hp: String(monster.hp ?? ""),
+          dex: String(monster.dex ?? "")
         }))
       : [];
 
@@ -889,7 +933,8 @@ export class CreateEncounterModal extends Modal {
         qty: 1,
         level: monster.level,
         ac: monster.ac,
-        hp: monster.hp
+        hp: monster.hp,
+        dex: monster.dex
       });
     }
 

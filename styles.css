@@ -306,3 +306,55 @@
 .sd-encounter-selected-row input[type="number"] {
   width: 60px;
 }
+
+.sd-encounter-rendered-initiative {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.sd-encounter-rendered-initiative h3 {
+  margin: 0 0 8px;
+  font-size: 1em;
+}
+
+.sd-encounter-rendered-initiative ul {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.sd-encounter-rendered-initiative li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.sd-encounter-initiative-check {
+  color: var(--text-muted);
+}
+
+.sd-encounter-initiative-check.is-checked {
+  color: var(--text-accent);
+}
+
+.sd-encounter-initiative-roll {
+  display: inline-flex;
+  justify-content: center;
+  min-width: 2.5em;
+  padding: 2px 6px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  font-weight: 600;
+  color: var(--text-accent);
+}
+
+.markdown-reading-view h2[data-heading="Initiative"],
+.markdown-reading-view h2[data-heading="Initiative"] + ul {
+  display: none;
+}
+
+.sd-encounter-details-field select {
+  width: 100%;
+}
