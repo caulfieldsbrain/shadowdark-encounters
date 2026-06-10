@@ -88,7 +88,7 @@ export function generateEncounterMarkdown(
   return `---
 shadowdarkType: encounter
 name: ${yamlString(encounter.name)}
-status: planned
+status: ${yamlString(encounter.status ?? "planned")}
 
 partyLevel: ${encounter.partyLevel ?? 1}
 partySize: ${encounter.partySize ?? 4}

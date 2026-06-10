@@ -14,6 +14,10 @@ import {
 import { ShadowdarkEncountersSettingTab }
   from "./settings/ShadowdarkEncountersSettingTab";
 
+import { EncounterIndex } from "./services/EncounterIndex";
+
+import { EncounterBrowserModal } from "./modals/EncounterBrowserModal";
+
 export default class ShadowdarkEncountersPlugin extends Plugin {
 
   settings!: ShadowdarkEncountersSettings;
@@ -23,6 +27,8 @@ export default class ShadowdarkEncountersPlugin extends Plugin {
   encounterService!: EncounterService;
 
   encounterRenderer!: EncounterRenderer;
+
+  encounterIndex!: EncounterIndex;
 
   async onload(): Promise<void> {
 
@@ -45,17 +51,31 @@ export default class ShadowdarkEncountersPlugin extends Plugin {
 
     this.encounterRenderer = new EncounterRenderer(this);
     this.encounterRenderer.register();
+    this.encounterIndex = new EncounterIndex(this.app);
 
     this.addCommand({
       id: "create-shadowdark-encounter",
       name: "Create Shadowdark Encounter",
       callback: () => {
         new CreateEncounterModal(
-        this.app,
-        this.monsterIndex,
-        this.encounterService
-      ).open();
+          this.app,
+          this,
+          this.monsterIndex,
+          this.encounterService
+        ).open();
      }
+    });
+
+    this.addCommand({
+      id: "browse-shadowdark-encounters",
+      name: "Browse Shadowdark Encounters",
+      callback: () => {
+        new EncounterBrowserModal(
+          this.app,
+          this,
+          this.encounterIndex
+        ).open();
+      }
     });
 
     this.addCommand({
@@ -78,6 +98,7 @@ export default class ShadowdarkEncountersPlugin extends Plugin {
         if (!checking) {
           new CreateEncounterModal(
             this.app,
+            this,
             this.monsterIndex,
             this.encounterService,
             file,
@@ -109,6 +130,7 @@ export default class ShadowdarkEncountersPlugin extends Plugin {
         if (!checking) {
           new CreateEncounterModal(
             this.app,
+            this,
             this.monsterIndex,
             this.encounterService,
             file

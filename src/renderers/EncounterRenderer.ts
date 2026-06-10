@@ -147,17 +147,23 @@ export class EncounterRenderer {
         frontmatter.partySize
           ? `${frontmatter.partySize} PCs`
           : null,
-        frontmatter.status
-          ? `Status: ${frontmatter.status}`
-          : null
-      ]
+        ]
         .filter(Boolean)
         .join(" • ")
     });
 
+    if (frontmatter.status) {
+      container.createEl("span", {
+        cls: `sd-encounter-status-badge is-${frontmatter.status}`,
+        text: String(frontmatter.status).toUpperCase()
+      });
+    }
+    
     this.renderDashboardStats(container, frontmatter);
     this.renderCompactMonsterRoster(container, frontmatter);
-    this.renderInitiative(container, frontmatter);
+    if (this.plugin.settings.showInitiative) {
+      this.renderInitiative(container, frontmatter);
+    }
   }
 
   getEncounterDifficulty(
@@ -239,7 +245,9 @@ export class EncounterRenderer {
         : 0;
 
     const difficulty =
-      this.getEncounterDifficulty(frontmatter);
+      this.plugin.settings.showDifficulty
+        ? ` • ${this.getEncounterDifficulty(frontmatter)}`
+        : "";
 
     container.createEl("p", {
       cls: "sd-encounter-rendered-stats",
@@ -247,7 +255,7 @@ export class EncounterRenderer {
         `${totalMonsters} Monsters` +
         ` • ${uniqueMonsters} Unique` +
         ` • Avg Lv ${averageLevel.toFixed(1)}` +
-        ` • ${difficulty}`
+        difficulty
     });
   }
 

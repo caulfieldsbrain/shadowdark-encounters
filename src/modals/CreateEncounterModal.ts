@@ -11,10 +11,14 @@ import {
   MonsterSummary
 } from "../types/encounters";
 
+import ShadowdarkEncountersPlugin from "../main";
+
 type EncounterWizardStep = "monsters" | "details" | "preview";
 type EncounterModalMode = "create" | "edit" | "duplicate";
 
 export class CreateEncounterModal extends Modal {
+  plugin: ShadowdarkEncountersPlugin;
+
   monsterIndex: MonsterIndex;
   encounterService: EncounterService;
 
@@ -30,6 +34,7 @@ export class CreateEncounterModal extends Modal {
 
   partyLevel = 1;
   partySize = 4;
+  status = "planned";
 
   initiativeMode: EncounterInitiativeMode = "individual_monsters";
 
@@ -52,6 +57,7 @@ export class CreateEncounterModal extends Modal {
 
   constructor(
     app: App,
+    plugin: ShadowdarkEncountersPlugin,
     monsterIndex: MonsterIndex,
     encounterService: EncounterService,
     fileToEdit?: TFile,
@@ -59,10 +65,15 @@ export class CreateEncounterModal extends Modal {
   ) {
     super(app);
 
+    this.plugin = plugin;
     this.monsterIndex = monsterIndex;
     this.encounterService = encounterService;
     this.fileToEdit = fileToEdit;
     this.mode = mode;
+
+    this.partyLevel = plugin.settings.defaultPartyLevel;
+    this.partySize = plugin.settings.defaultPartySize;
+    this.initiativeMode = plugin.settings.defaultInitiativeMode;
   }
 
   async onOpen(): Promise<void> {
@@ -342,6 +353,42 @@ export class CreateEncounterModal extends Modal {
       cls: "sd-encounter-party-field"
     });
 
+    const statusField = detailsEl.createDiv({
+      cls: "sd-encounter-details-field"
+    });
+
+    statusField.createEl("label", {
+      text: "Status"
+    });
+
+    const statusSelect = statusField.createEl("select");
+
+    statusSelect.createEl("option", {
+      text: "Planned",
+      value: "planned"
+    });
+
+    statusSelect.createEl("option", {
+      text: "Running",
+      value: "running"
+    });
+
+    statusSelect.createEl("option", {
+      text: "Completed",
+      value: "completed"
+    });
+
+    statusSelect.createEl("option", {
+      text: "Archived",
+      value: "archived"
+    });
+
+    statusSelect.value = this.status;
+
+    statusSelect.addEventListener("change", () => {
+      this.status = statusSelect.value;
+    });
+
     levelField.createEl("label", {
       text: "Party Level"
     });
@@ -577,6 +624,7 @@ export class CreateEncounterModal extends Modal {
   getEncounterData(): EncounterData {
     return {
       name: this.encounterName.trim(),
+      status: this.status,
       partyLevel: this.partyLevel,
       partySize: this.partySize,
       initiativeMode: this.initiativeMode,
@@ -610,6 +658,11 @@ export class CreateEncounterModal extends Modal {
     if (this.isDuplicating) {
       this.encounterName = `${this.encounterName} Copy`;
     }
+
+    this.status =
+      typeof frontmatter.status === "string"
+        ? frontmatter.status
+        : "planned";
 
     this.partyLevel = Number(frontmatter.partyLevel ?? 1);
     this.partySize = Number(frontmatter.partySize ?? 4);

@@ -358,3 +358,78 @@
 .sd-encounter-details-field select {
   width: 100%;
 }
+
+.sd-encounter-status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.8em;
+  font-weight: 600;
+}
+
+.sd-encounter-status-badge.is-planned {
+  background: var(--background-modifier-border);
+}
+
+.sd-encounter-status-badge.is-running {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.sd-encounter-status-badge.is-completed,
+.sd-encounter-status-badge.is-archived {
+  background: var(--background-modifier-success);
+}
+
+.sd-encounter-browser-modal {
+  width: min(900px, 90vw);
+}
+
+.sd-encounter-browser-filter-row {
+  display: grid;
+  grid-template-columns: 1fr 150px 150px 170px;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.sd-encounter-browser-results {
+  max-height: 560px;
+  overflow-y: auto;
+}
+
+.sd-encounter-browser-summary {
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.sd-encounter-browser-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.sd-encounter-browser-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sd-encounter-browser-name {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.sd-encounter-browser-meta {
+  color: var(--text-muted);
+  font-size: 0.9em;
+  margin-bottom: 6px;
+}
+
+.sd-encounter-browser-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

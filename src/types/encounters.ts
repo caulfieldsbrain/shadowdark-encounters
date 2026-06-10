@@ -47,6 +47,17 @@ export interface MonsterSummary {
   tags?: string[];
 }
 
+export interface EncounterSummary {
+  name: string;
+  path: string;
+  status?: string;
+  partyLevel?: number;
+  partySize?: number;
+  monsterCount: number;
+  uniqueMonsterCount: number;
+  averageMonsterLevel: number;
+}
+
 export type EncounterInitiativeMode =
   | "shadowdark_raw"
   | "individual_monsters"
