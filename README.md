@@ -4,7 +4,7 @@ Create and manage Shadowdark RPG encounters directly inside Obsidian.
 
 Shadowdark Encounters is a companion plugin to Shadowdark Statblocks that helps GMs quickly build encounter notes using monsters stored in their vault.
 
-> ⚠️ Early Development Release (v0.1.0)
+> ⚠️ Early Development Release (v0.2.0)
 >
 > This plugin is currently under active development and APIs, note formats, and features may change before the first stable release.
 
